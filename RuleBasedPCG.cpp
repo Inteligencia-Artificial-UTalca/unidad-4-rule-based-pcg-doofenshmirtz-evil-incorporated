@@ -7,13 +7,7 @@
 // You can change 'int' to whatever type best represents your cells (e.g., char, bool).
 using Map = std::vector<std::vector<int>>;
 
-int preb = 1;
 
-struct prev_coor
-{
-    int x;
-    int y;
-};
 
 
 /**
@@ -38,6 +32,48 @@ int gen_Random(int a, int b){
     std::uniform_int_distribution<> distrib(a,b);
     return distrib(gen);
 }
+
+void set_direction(int& dirX, int& dirY){
+    int direction = gen_Random(1, 4);
+    switch(direction){
+        case 1: //up
+            dirX = 0;
+            dirY = -1;
+        break;
+        case 2: //down
+            dirX = 0;
+            dirY = 1;
+        break;
+        case 3: //left
+            dirX = -1;
+            dirY = 0;
+        break;
+        case 4: //right
+            dirX = 1;
+            dirY = 0;
+        break;
+    }
+}
+
+bool is_legal_coor(int limX, int limY, int x, int y) {
+    return (x >= 0 && x < limX && y >= 0 && y < limY);
+    std::cout << "\nis illegal move\n";
+    /*if (x > 0 && x < limX) {
+        if (y > 0 && y < limY){
+            //std::cout << "\nis legal move\n";
+            return true;
+        }
+    }
+    
+    return false;*/
+}
+
+void update_map(Map& map, int x, int y, int value) {
+    if (map[y][x] == 0){
+        map[y][x] = value;
+    }
+}
+
 
 
 /**
@@ -86,33 +122,28 @@ Map drunkAgent(const Map& currentMap, int W, int H, int J, int I, int roomSizeX,
                double probChangeDirection, double probIncreaseChange,
                int& agentX, int& agentY) {
     Map newMap = currentMap; // The new map is a copy of the current one
-    newMap[agentX][agentY] = 1;
-    int direct_x = gen_Random(-1,1);
-    int direct_y = gen_Random(-1,1);
+    //newMap[agentY][agentX] = 1;
+    update_map(newMap, agentX, agentY, 1);
+    int direct_x = 0;
+    int direct_y = 0;
     for (int i = 0; i < J; i++){
-        agentX += direct_x;
-        agentY += direct_y;
-
-        newMap[agentX][agentY] = 1;
+        set_direction(direct_x, direct_y);
+        for (int j = 0; j < I; j++){
+            agentX += direct_x;
+            agentY += direct_y;
+            if (is_legal_coor(W, H, agentX, agentY)==true){
+                //newMap[agentY][agentX] = 1;
+                update_map(newMap, agentX, agentY, 1);
+            }
+            else {
+                agentX -= direct_x;
+                agentY -= direct_y;
+                set_direction(direct_x, direct_y);
+                j--;
+            }
+        }
     }
     
-    //std::cout << "pos = " << newMap[agentX][agentY] << std::endl;
-
-    /*if (prev_.x == -1 && prev_.y == -1){        //significa que es la primera iteracion
-        agentX = gen_Random(0, W);
-        agentY = gen_Random(0, H);
-        prev_.x = agentX;
-        prev_.y = agentY;
-    }
-    else {                      //significa que no es la primera iteracion
-        newMap[prev_.x][prev_.y] = 1;
-        std::cout << "hola" << std::endl;
-        for (int i = 0; i < J; i ++){
-            
-        }
-        
-    }*/
-
     // TODO: IMPLEMENTATION GOES HERE for the Drunk Agent logic.
     // The agent should move randomly.
     // You'll need a random number generator.
@@ -131,14 +162,12 @@ Map drunkAgent(const Map& currentMap, int W, int H, int J, int I, int roomSizeX,
 
 int main() {
     std::cout << "\033[33m--- \033[93mCELLULAR AUTOMATA AND DRUNK AGENT SIMULATION \033[33m---\033[0m" << std::endl;
-
+    
     // --- Initial Map Configuration ---
     int mapRows = 10;
     int mapCols = 20;
     Map myMap(mapRows, std::vector<int>(mapCols, 0)); // Map initialized with zeros
 
-    /*coordenadas anteriores a la actual*/
-    prev_coor prev = { -1, -1};
 
     // TODO: IMPLEMENTATION GOES HERE: Initialize the map with some pattern or initial state.
     // For example, you might set some cells to 1 for the cellular automata
@@ -147,6 +176,14 @@ int main() {
     // Drunk Agent's initial position
     int drunkAgentX = mapRows / 2;
     int drunkAgentY = mapCols / 2;
+
+    do {
+        drunkAgentX = gen_Random(0, mapRows);
+        drunkAgentY = gen_Random(0, mapCols);
+    }while(!is_legal_coor(mapCols, mapRows, drunkAgentX, drunkAgentY));
+
+    update_map(myMap, drunkAgentX, drunkAgentY, 1);
+
     // If your agent modifies the map at start, you could do it here:
     // myMap[drunkAgentX][drunkAgentY] = 2; // Assuming '2' represents the agent
 
@@ -165,8 +202,8 @@ int main() {
     // Drunk Agent Parameters
     int da_W = mapCols;
     int da_H = mapRows;
-    int da_J = 2;      // Number of "walks"
-    int da_I = 10;     // Steps per walk
+    int da_J = 5;      // Number of "walks"
+    int da_I = 5;     // Steps per walk
     int da_roomSizeX = 5;
     int da_roomSizeY = 3;
     double da_probGenerateRoom = 0.1;
