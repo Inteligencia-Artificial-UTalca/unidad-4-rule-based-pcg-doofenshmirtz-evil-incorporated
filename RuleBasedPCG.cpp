@@ -19,6 +19,12 @@ void printMap(const Map& map) {
     for (const auto& row : map) {
         for (int cell : row) {
             // Adapt this to represent your cells meaningfully (e.g., ' ' for empty, '#' for occupied).
+            if (cell == 0){
+                std::cout << "\033[90m";
+            }
+            else {
+                std::cout << "\033[0m";
+            }
             std::cout << cell << " ";
         }
         std::cout << std::endl;
@@ -30,10 +36,12 @@ int gen_Random(int a, int b){
     std::random_device rd;  
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(a,b);
+    std::cout << "Random number generated: " << distrib(gen) << std::endl;
     return distrib(gen);
 }
 
 void set_direction(int& dirX, int& dirY){
+    std::cout << "direct is ";
     int direction = gen_Random(1, 4);
     switch(direction){
         case 1: //up
@@ -57,20 +65,58 @@ void set_direction(int& dirX, int& dirY){
 
 bool is_legal_coor(int limX, int limY, int x, int y) {
     return (x >= 0 && x < limX && y >= 0 && y < limY);
-    std::cout << "\nis illegal move\n";
-    /*if (x > 0 && x < limX) {
-        if (y > 0 && y < limY){
-            //std::cout << "\nis legal move\n";
-            return true;
-        }
-    }
-    
-    return false;*/
 }
 
 void update_map(Map& map, int x, int y, int value) {
     if (map[y][x] == 0){
         map[y][x] = value;
+    }
+}
+bool is_legal_room(int lX, int lY, int x, int y, int roomSizeX, int roomSizeY, Map& map){
+    for (int i = 0; i < roomSizeY; i++){
+        for (int j = 0; j < roomSizeX; j++){
+            if (!is_legal_coor(lX, lY, x + j, y + i)){
+                return false;
+            }
+            /*if (map[y+1][x] == 3 && map[y][x+1] == 3){
+                return false;
+            }*/
+        }
+    }
+    if (map[y-1][x] == 3){
+        return false;
+    }
+    if (map[y-1][x+roomSizeX] == 3){
+        return false;
+    }
+    if (map[y+roomSizeY][x] == 3){
+        return false;
+    }
+    if (map[y+roomSizeY][x+roomSizeX] == 3){
+        return false;
+    }
+    if (map[y-1][x-1] == 3){
+        return false;
+    }
+    if (map[y+roomSizeY][x-1] == 3){
+        return false;
+    }
+    if (map[y-1][x+roomSizeX] == 3){
+        return false;
+    }
+    if (map[y+roomSizeY][x+roomSizeX] == 3){
+        return false;
+    }
+
+    return true;
+
+}
+
+void create_room(int x, int y, int roomSizeX, int roomSizeY, int& W, int& H, Map& map) {
+    for (int i = 0; i < roomSizeY; i++){
+        for (int j = 0; j < roomSizeX; j++){
+            update_map(map, x + j, y + i, 3);
+        }
     }
 }
 
@@ -126,8 +172,25 @@ Map drunkAgent(const Map& currentMap, int W, int H, int J, int I, int roomSizeX,
     update_map(newMap, agentX, agentY, 1);
     int direct_x = 0;
     int direct_y = 0;
+    int generateRoomProb = probGenerateRoom * 10;
+
     for (int i = 0; i < J; i++){
         set_direction(direct_x, direct_y);
+        
+        if (gen_Random(0, 10) <= generateRoomProb){
+            if (is_legal_room(agentX-(roomSizeX/2),agentY-(roomSizeY/2), roomSizeX, roomSizeY, W, H, newMap)){
+                create_room(agentX-(roomSizeX/2),agentY-(roomSizeY/2), roomSizeX, roomSizeY, W, H, newMap);
+                generateRoomProb = probGenerateRoom * 10;
+            }
+            else {
+                std::cout << "No room " << generateRoomProb * 10 <<"%\n";
+                generateRoomProb += probIncreaseRoom * 10;
+            }
+        }
+        else {
+            std::cout << "No room " << generateRoomProb * 10 <<"%\n";
+            generateRoomProb += probIncreaseRoom * 10;
+        }
         for (int j = 0; j < I; j++){
             agentX += direct_x;
             agentY += direct_y;
@@ -153,9 +216,6 @@ Map drunkAgent(const Map& currentMap, int W, int H, int J, int I, int roomSizeX,
     // - How it modifies the map (e.g., leaving a trail, creating rooms, etc.).
     // - Use the provided parameters (J, I, roomSizeX, roomSizeY, probabilities)
     //   to control its behavior.
-    //std::cout << "agent_coor: X=" << agentX << "    Y=" << agentY << std::endl << newMap[agentY][agentX] << std::endl;
-
-
     return newMap;
 }
 
@@ -164,8 +224,8 @@ int main() {
     std::cout << "\033[33m--- \033[93mCELLULAR AUTOMATA AND DRUNK AGENT SIMULATION \033[33m---\033[0m" << std::endl;
     
     // --- Initial Map Configuration ---
-    int mapRows = 10;
-    int mapCols = 20;
+    int mapRows = 20;
+    int mapCols = 40;
     Map myMap(mapRows, std::vector<int>(mapCols, 0)); // Map initialized with zeros
 
 
@@ -206,7 +266,7 @@ int main() {
     int da_I = 5;     // Steps per walk
     int da_roomSizeX = 5;
     int da_roomSizeY = 3;
-    double da_probGenerateRoom = 0.1;
+    double da_probGenerateRoom = 0.5;
     double da_probIncreaseRoom = 0.05;
     double da_probChangeDirection = 0.2;
     double da_probIncreaseChange = 0.03;
