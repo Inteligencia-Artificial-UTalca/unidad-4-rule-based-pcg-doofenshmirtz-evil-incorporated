@@ -2,13 +2,13 @@
 #include <vector>
 #include <random>   // For random number generation
 #include <chrono>   // For seeding the random number generator
-
+using namespace std;
 // Define Map as a vector of vectors of integers.
 // You can change 'int' to whatever type best represents your cells (e.g., char, bool).
 using Map = std::vector<std::vector<int>>;
 
 
-
+mt19937 rng(random_device{}()); // Initialize random number generator
 
 /**
  * @brief Prints the map (matrix) to the console.
@@ -20,10 +20,13 @@ void printMap(const Map& map) {
         for (int cell : row) {
             // Adapt this to represent your cells meaningfully (e.g., ' ' for empty, '#' for occupied).
             if (cell == 0){
-                std::cout << "\033[90m";
+                std::cout << "\033[90m.";
             }
-            else {
-                std::cout << "\033[0m";
+            else if(cell==1){
+                std::cout << "\033[93m@";
+            }
+            else if(cell==3){
+                cout<< "\033[94m#";
             }
             std::cout << cell << " ";
         }
@@ -33,30 +36,35 @@ void printMap(const Map& map) {
 }
 
 int gen_Random(int a, int b){
-    std::random_device rd;  
-    std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(a,b);
-    std::cout << "Random number generated: " << distrib(gen) << std::endl;
-    return distrib(gen);
+    int num = distrib(rng);
+    return num;
 }
 
 void set_direction(int& dirX, int& dirY){
-    std::cout << "direct is ";
+    std::cout << " direccion es: ";
     int direction = gen_Random(1, 4);
     switch(direction){
         case 1: //up
+            std::cout << "Arriba\n";
             dirX = 0;
             dirY = -1;
         break;
-        case 2: //down
+        case 2:
+            //down
+            std::cout << "Abajo\n";
             dirX = 0;
             dirY = 1;
         break;
-        case 3: //left
+        case 3: 
+            //left
+            std::cout << "Izquierda\n";
             dirX = -1;
             dirY = 0;
         break;
-        case 4: //right
+        case 4: 
+            //right
+            std::cout << "Derecha\n";
             dirX = 1;
             dirY = 0;
         break;
@@ -78,34 +86,21 @@ bool is_legal_room(int lX, int lY, int x, int y, int roomSizeX, int roomSizeY, M
             if (!is_legal_coor(lX, lY, x + j, y + i)){
                 return false;
             }
-            /*if (map[y+1][x] == 3 && map[y][x+1] == 3){
-                return false;
-            }*/
         }
     }
-    if (map[y-1][x] == 3){
-        return false;
-    }
-    if (map[y-1][x+roomSizeX] == 3){
-        return false;
-    }
-    if (map[y+roomSizeY][x] == 3){
-        return false;
-    }
-    if (map[y+roomSizeY][x+roomSizeX] == 3){
-        return false;
-    }
-    if (map[y-1][x-1] == 3){
-        return false;
-    }
-    if (map[y+roomSizeY][x-1] == 3){
-        return false;
-    }
-    if (map[y-1][x+roomSizeX] == 3){
-        return false;
-    }
-    if (map[y+roomSizeY][x+roomSizeX] == 3){
-        return false;
+    vector<pair<int, int>> occupiedCells = {
+        {-1,-1},{roomSizeX,-1},{-1,roomSizeY},{roomSizeX,roomSizeY},
+        {0,-1},{roomSizeX-1,-1},{0,roomSizeY},{roomSizeX-1,roomSizeY}
+
+    };
+
+    for(auto& cell : occupiedCells){
+        int cx= x + cell.first;
+        int cy= y + cell.second;
+        if(is_legal_coor(lX, lY, cx, cy) && map[cy][cx] == 3){
+            return false;
+
+        }
     }
 
     return true;
@@ -172,35 +167,47 @@ Map drunkAgent(const Map& currentMap, int W, int H, int J, int I, int roomSizeX,
     update_map(newMap, agentX, agentY, 1);
     int direct_x = 0;
     int direct_y = 0;
-    int generateRoomProb = probGenerateRoom * 10;
+    double generateRoomProb = probGenerateRoom * 10;
+    double ChangeDirection = probChangeDirection * 10;
 
     for (int i = 0; i < J; i++){
-        set_direction(direct_x, direct_y);
-        
-        if (gen_Random(0, 10) <= generateRoomProb){
-            if (is_legal_room(agentX-(roomSizeX/2),agentY-(roomSizeY/2), roomSizeX, roomSizeY, W, H, newMap)){
+        //cambio de direccion
+        if (double(gen_Random(0, 10)) <=ChangeDirection) {
+            cout << "Se cambia direccion \nNueva";
+            ChangeDirection = probChangeDirection * 10;
+            set_direction(direct_x, direct_y);
+        }       
+        else {
+            cout << "No se cambia direccion \nNueva posibilidad de cambio de direccion: " << ChangeDirection * 10 <<"%\n";
+            ChangeDirection += probIncreaseChange*10;
+        }
+        //generacion de habitacion
+        if (double(gen_Random(0, 10)) <= generateRoomProb){
+            
+            if (is_legal_room(W, H,agentX-(roomSizeX/2),agentY-(roomSizeY/2), roomSizeX, roomSizeY, newMap)){
                 create_room(agentX-(roomSizeX/2),agentY-(roomSizeY/2), roomSizeX, roomSizeY, W, H, newMap);
                 generateRoomProb = probGenerateRoom * 10;
+                std::cout << "Se genero habitacion \nNueva posibilidad de generacion: " << generateRoomProb * 10 <<"%\n";
             }
             else {
-                std::cout << "No room " << generateRoomProb * 10 <<"%\n";
-                generateRoomProb += probIncreaseRoom * 10;
+                std::cout << "No se pudo generar habitacion \nNueva posibilidad de generacion:" << generateRoomProb * 10 <<"%\n";
+                generateRoomProb += probIncreaseRoom*10;
             }
         }
         else {
-            std::cout << "No room " << generateRoomProb * 10 <<"%\n";
+            std::cout << "No se genera habitacion \nNueva posibilidad de generacion: " << generateRoomProb * 10 <<"%\n";
             generateRoomProb += probIncreaseRoom * 10;
         }
         for (int j = 0; j < I; j++){
-            agentX += direct_x;
-            agentY += direct_y;
-            if (is_legal_coor(W, H, agentX, agentY)==true){
-                //newMap[agentY][agentX] = 1;
+            int newX = agentX + direct_x;
+            int newY = agentY + direct_y;
+
+            if (is_legal_coor(W, H, newX, newY)==true){
+                agentX = newX;
+                agentY = newY;
                 update_map(newMap, agentX, agentY, 1);
             }
             else {
-                agentX -= direct_x;
-                agentY -= direct_y;
                 set_direction(direct_x, direct_y);
                 j--;
             }
@@ -221,7 +228,7 @@ Map drunkAgent(const Map& currentMap, int W, int H, int J, int I, int roomSizeX,
 
 
 int main() {
-    std::cout << "\033[33m--- \033[93mCELLULAR AUTOMATA AND DRUNK AGENT SIMULATION \033[33m---\033[0m" << std::endl;
+    std::cout << "\033[33m--- \033[93mSimulacion Del Automata Celular y el Agente Borracho\033[33m---\033[0m" << std::endl;
     
     // --- Initial Map Configuration ---
     int mapRows = 20;
@@ -238,8 +245,8 @@ int main() {
     int drunkAgentY = mapCols / 2;
 
     do {
-        drunkAgentX = gen_Random(0, mapRows);
-        drunkAgentY = gen_Random(0, mapCols);
+        drunkAgentX = gen_Random(2, mapRows-3);
+        drunkAgentY = gen_Random(2, mapCols-3);
     }while(!is_legal_coor(mapCols, mapRows, drunkAgentX, drunkAgentY));
 
     update_map(myMap, drunkAgentX, drunkAgentY, 1);
@@ -250,20 +257,20 @@ int main() {
     std::cout << "\nInitial map state:" << std::endl;
     printMap(myMap);
 
-    // --- Simulation Parameters ---
-    int numIterations = 5; // Number of simulation steps
+    // --- Simulacion de Parametros ---
+    int numIterations = 5; //Numero de Pasos de la simulacion
 
-    // Cellular Automata Parameters
+    // Parametros del Automata Celular
     int ca_W = mapCols;
     int ca_H = mapRows;
-    int ca_R = 1;      // Radius of neighbor window
-    double ca_U = 0.5; // Threshold
+    int ca_R = 1;      // Radio de las celdad vecinas
+    double ca_U = 0.5; // Umbral para decidir si la celda se convierte en 1 o 0
 
     // Drunk Agent Parameters
     int da_W = mapCols;
     int da_H = mapRows;
-    int da_J = 5;      // Number of "walks"
-    int da_I = 5;     // Steps per walk
+    int da_J = 5;      // Numero de veces que el agente "camina" (inicia un camino)
+    int da_I = 5;     // pasos que el agente da por "camino"
     int da_roomSizeX = 5;
     int da_roomSizeY = 3;
     double da_probGenerateRoom = 0.5;
