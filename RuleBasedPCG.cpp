@@ -137,7 +137,7 @@ Map cellularAutomata(const Map& currentMap, int W, int H, int R, double U) {
 
             for (int dy = -R; dy <= R; dy++){
                 for(int dx=-R;dx<=R;dx++){
-                    if (dx == 0 && dy == 0) continue; // Skip the cell itself
+                    if (currentMap[y][x]==3) continue; // Skip the cell itself
                     int neighborX = x + dx;
                     int neighborY = y + dy;
 
@@ -279,7 +279,6 @@ int main() {
     }while(!is_legal_coor(mapCols, mapRows, drunkAgentX, drunkAgentY));
 
     update_map(myMap, drunkAgentX, drunkAgentY, 1);
-    Map myMap2=myMap; // Copy the initial map to myMap2 for later use
 
     // If your agent modifies the map at start, you could do it here:
     // myMap[drunkAgentX][drunkAgentY] = 2; // Assuming '2' represents the agent
@@ -318,8 +317,8 @@ int main() {
 
         // Example: First the cellular automata, then the agent
         cout<<"\n\033[32m--- Calma Conductor Automata Pasando ---\033[0m\n";
-        myMap = cellularAutomata(myMap2, ca_W, ca_H, ca_R, ca_U);
-        printMap(myMap2);
+        myMap = cellularAutomata(myMap, ca_W, ca_H, ca_R, ca_U);
+        printMap(myMap);
         cout<<"\n\033[31m--- Cuidado Conductor Borracho Pasando ---\033[0m\n";
         myMap = drunkAgent(myMap, da_W, da_H, da_J, da_I, da_roomSizeX, da_roomSizeY,
                            da_probGenerateRoom, da_probIncreaseRoom,
